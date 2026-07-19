@@ -43,3 +43,14 @@ Se diseñará una única tabla para almacenar la información de las compras, lo
 
 Se crea la infraestructura (como código) para la ingestión de eventos utilizando CDK. Para esto se modifica el stack en `aws_data_processing_ecommerce\aws_data_processing_ecommerce_stack.py`
 
+
+### 4. Código de la Lambda de Ingestión usando AWS Lambda Powertools para procesar los mensajes de SQS que vienen de SNS.
+
+Se implementa el código de ingestión de la lambda en `src\ingestion\index.py`. 
+
+Algunas notas:
+
+* Se utiliza el Logger de lambda powertools para manejar los logs
+* Se utiliza el Tracer de lambda powertools para proveer observabilidad: Mide tiempos y rutas, Visualización de mapas de servicios, Captura de Metadatos y Errores
+* Se utiliza BatchProcessor para procesar los mensajes de SQS. Si se envía un batch de 10 mensajes y falla uno solo este se reenvía a la DQL.
+
