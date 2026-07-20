@@ -8,6 +8,7 @@ from aws_cdk import (
     aws_lambda as _lambda,
     aws_lambda_event_sources as lambda_events,
     aws_dynamodb as dynamodb,
+    aws_apigateway as apigw
 )
 from constructs import Construct
 
@@ -53,7 +54,7 @@ class AwsDataProcessingEcommerceStack(Stack):
 
         # 3. Lambda de Ingestión
         # Capa de código que procesará los mensajes de la cola
-        ingestion_lambda = _lambda.Function(
+        ecommerce_lambda = _lambda.Function(
             self, "IngestionLambdaFunction",
             function_name="ecommerce-ingestion-handler",
             runtime=_lambda.Runtime.PYTHON_3_11,
@@ -69,7 +70,50 @@ class AwsDataProcessingEcommerceStack(Stack):
 
         # 4. Configuración de Event Source Mapping e IAM
         # Permitir que SQS accione la Lambda de forma automática
-        ingestion_lambda.add_event_source(lambda_events.SqsEventSource(ingestion_queue))
+        ecommerce_lambda.add_event_source(lambda_events.SqsEventSource(ingestion_queue))
 
         # Otorgar permisos de escritura explícitos a la Lambda sobre la tabla DynamoDB
-        table.grant_write_data(ingestion_lambda)
+        table.grant_read_write_data(ecommerce_lambda)
+
+        # 4. API Gateway con protección por API Key (Fase 2)
+        api = apigw.RestApi(
+            self, "EcommerceApi",
+            rest_api_name="Ecommerce Analytics API",
+            description="API para consultar analytics e historial de usuarios",
+            deploy_options=apigw.StageOptions(stage_name="prod")
+        )
+
+        # Integración de la Lambda con API Gateway (Proxy)
+        lambda_integration = apigw.LambdaIntegration(ecommerce_lambda)
+
+        # Recurso: /users/{user_id}/analytics
+        users_resource = api.root.add_resource("users")
+        user_id_resource = users_resource.add_resource("{user_id}")
+        analytics_resource = user_id_resource.add_resource("analytics")
+
+        # Método GET protegido por API Key
+        analytics_resource.add_method(
+            "GET",
+            lambda_integration,
+            api_key_required=True
+        )
+
+        # Crear API Key y Plan de Uso (Usage Plan)
+        api_key = api.add_api_key(
+            "EcommerceApiKey",
+            api_key_name="ecommerce-client-key"
+        )
+
+        plan = api.add_usage_plan(
+            "EcommerceUsagePlan",
+            name="StandardUsagePlan",
+            throttle=apigw.ThrottleSettings(
+                rate_limit=10,
+                burst_limit=20
+            )
+        )
+
+        plan.add_api_stage(
+            stage=api.deployment_stage
+        )
+        plan.add_api_key(api_key)
