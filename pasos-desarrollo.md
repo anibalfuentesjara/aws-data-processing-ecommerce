@@ -46,7 +46,7 @@ Se crea la infraestructura (como código) para la ingestión de eventos utilizan
 
 ### 4. Código de la Lambda de Ingestión usando AWS Lambda Powertools para procesar los mensajes de SQS que vienen de SNS.
 
-Se implementa el código de ingestión de la lambda en `src\ingestion\index.py`. 
+Se implementa el código de ingestión de la lambda en `src\ingestion\handler.py`. 
 
 Algunas notas:
 
@@ -54,3 +54,32 @@ Algunas notas:
 * Se utiliza el Tracer de lambda powertools para proveer observabilidad: Mide tiempos y rutas, Visualización de mapas de servicios, Captura de Metadatos y Errores
 * Se utiliza BatchProcessor para procesar los mensajes de SQS. Si se envía un batch de 10 mensajes y falla uno solo este se reenvía a la DQL.
 
+### 5. Creación de la infraestructura del API Gateway (con configuración de API Key) y la Lambda de lectura en CDK.
+
+Se modifica el archivo `aws_data_processing_ecommerce\aws_data_processing_ecommerce_stack.py` y se agrega el api gateway.
+
+### 6. Código de la Lambda del Endpoint usando Powertools (Event Handler), queries/scans optimizados a DynamoDB y lógica de procesamiento de datos con DuckDB.
+
+Implementamos el código de la dynamo en `src\common\dynamodb.py` y el código de duckdb en `src\common\duckdb.py`
+
+Separamos el código de ingestión.
+
+Implementamos el código de la api en `src\api\handler.py`
+
+Implementamos el handler de la lambda en `src\main.py`
+
+### 7. Pruebas de integración locales/remotas para validar que los datos se guardan y se consultan correctamente.
+
+Si es la primera vez utilizando cdk, debemos realizar el bootstrapping: `cdk bootstrap aws://843335492713/us-west-2`
+
+Luego `cdk synth`
+
+Y finalmente `cdk deploy`
+
+Prueba ingestión eventos:
+
+```
+aws sns publish `
+  --topic-arn "<SNS_TOPIC_ARN>" `
+  --message '{\"user_id\": \"USR_123\", \"purchase_id\": \"TX_001\", \"purchase_timestamp\": \"2026-07-20T10:00:00Z\", \"purchase_amount\": 15000, \"purchase_items\": [\"item1\", \"item2\"]}'
+```

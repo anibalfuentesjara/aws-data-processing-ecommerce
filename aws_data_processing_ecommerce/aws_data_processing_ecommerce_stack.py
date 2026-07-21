@@ -7,6 +7,7 @@ from aws_cdk import (
     aws_sqs as sqs,
     aws_lambda as _lambda,
     aws_lambda_event_sources as lambda_events,
+    aws_logs as logs,
     aws_dynamodb as dynamodb,
     aws_apigateway as apigw
 )
@@ -55,14 +56,15 @@ class AwsDataProcessingEcommerceStack(Stack):
         # 3. Lambda de Ingestión
         # Capa de código que procesará los mensajes de la cola
         ecommerce_lambda = _lambda.Function(
-            self, "IngestionLambdaFunction",
-            function_name="ecommerce-ingestion-handler",
+            self, "EcommerceLambdaFunction",
+            function_name="ecommerce-processor-handler",
             runtime=_lambda.Runtime.PYTHON_3_11,
-            code=_lambda.Code.from_asset("src/ingestion"), # Carpeta que crearemos en el siguiente paso
-            handler="index.handler",
+            code=_lambda.Code.from_asset("src"),  # Apunta a la raiz de src
+            handler="main.handler",               # Apunta a src/main.py -> funcion handler
             timeout=Duration.seconds(15),
+            log_retention=logs.RetentionDays.THREE_DAYS,
             environment={
-                "POWERTOOLS_SERVICE_NAME": "ecommerce-ingestion",
+                "POWERTOOLS_SERVICE_NAME": "ecommerce-service",
                 "LOG_LEVEL": "INFO",
                 "DYNAMODB_TABLE_NAME": table.table_name
             }
