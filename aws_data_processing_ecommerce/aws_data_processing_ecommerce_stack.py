@@ -11,6 +11,7 @@ from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_apigateway as apigw
 )
+
 from constructs import Construct
 
 class AwsDataProcessingEcommerceStack(Stack):
@@ -53,6 +54,11 @@ class AwsDataProcessingEcommerceStack(Stack):
         # Suscribir la cola SQS al tópico SNS
         ecommerce_topic.add_subscription(subs.SqsSubscription(ingestion_queue))
 
+        powertools_layer = _lambda.LayerVersion.from_layer_version_arn(
+            self, "PowertoolsLayer",
+            layer_version_arn=f"arn:aws:lambda:{self.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:60"
+        )
+
         # 3. Lambda de Ingestión
         # Capa de código que procesará los mensajes de la cola
         ecommerce_lambda = _lambda.Function(
@@ -61,6 +67,7 @@ class AwsDataProcessingEcommerceStack(Stack):
             runtime=_lambda.Runtime.PYTHON_3_11,
             code=_lambda.Code.from_asset("src"),  # Apunta a la raiz de src
             handler="main.handler",               # Apunta a src/main.py -> funcion handler
+            layers=[powertools_layer], # Agrega la layer aquí
             timeout=Duration.seconds(15),
             log_retention=logs.RetentionDays.THREE_DAYS,
             environment={

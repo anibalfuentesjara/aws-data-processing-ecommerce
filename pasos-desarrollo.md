@@ -76,10 +76,8 @@ Luego `cdk synth`
 
 Y finalmente `cdk deploy`
 
-Prueba ingestión eventos:
+Luego, ejecutar los scripts de prueba:
 
-```
-aws sns publish `
-  --topic-arn "<SNS_TOPIC_ARN>" `
-  --message '{\"user_id\": \"USR_123\", \"purchase_id\": \"TX_001\", \"purchase_timestamp\": \"2026-07-20T10:00:00Z\", \"purchase_amount\": 15000, \"purchase_items\": [\"item1\", \"item2\"]}'
-```
+`uv run .\test_scripts\ingestion_test.py`
+
+`uv run .\test_scripts/api_test.py`
